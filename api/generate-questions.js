@@ -156,25 +156,37 @@ module.exports = async function handler(req, res) {
             throw new Error('生成的题目格式不正确');
         }
 
+        console.log('Raw questions count:', questions.length);
+        console.log('Sample question:', JSON.stringify(questions[0], null, 2));
+
         questions = questions.filter(q => {
-            if (!q.question || !q.type) return false;
+            if (!q.question || !q.type) {
+                console.log('Filtered: missing question or type', q);
+                return false;
+            }
 
             if (q.type === 'multiple-choice') {
-                return Array.isArray(q.options) &&
+                const valid = Array.isArray(q.options) &&
                        q.options.length === 4 &&
                        typeof q.correctAnswer === 'number' &&
                        q.correctAnswer >= 0 &&
                        q.correctAnswer <= 3;
+                if (!valid) console.log('Filtered: invalid multiple-choice', q);
+                return valid;
             } else if (q.type === 'fill-blanks') {
-                return q.correctAnswer &&
+                const valid = q.correctAnswer &&
                        typeof q.correctAnswer === 'string' &&
                        q.correctAnswer.trim().length > 0;
+                if (!valid) console.log('Filtered: invalid fill-blanks', q);
+                return valid;
             }
 
+            console.log('Filtered: unknown type', q);
             return false;
         });
 
         if (questions.length === 0) {
+            console.error('All questions were filtered out. Original questions:', questions);
             throw new Error('未能生成有效的题目');
         }
 
