@@ -14,7 +14,7 @@
             <label for="text-input">请输入英文文本:</label>
             <textarea 
                 id="text-input" 
-                placeholder="在此输入要朗读的英文内容..."
+                placeholder="在此输入要朗读的英文内容，或者点击下方按钮生成..."
                 rows="8"
             ></textarea>
         </div>
@@ -48,10 +48,10 @@
         
         <div class="button-group">
             <button id="config-btn" class="btn btn-config">
-                <span class="btn-icon">⚙️</span> 配置
+                <span class="btn-icon">⚙️</span> 配置 API
             </button>
             <button id="generate-btn" class="btn btn-generate">
-                <span class="btn-icon">🎲</span> 随机生成
+                <span class="btn-icon">🎲</span> 生成文本
             </button>
             <button id="read-btn" class="btn btn-primary">
                 <span class="btn-icon">▶️</span> 开始朗读
@@ -74,8 +74,8 @@
         <div class="voice-info">
             <h3>💡 使用说明</h3>
             <ul>
-                <li>点击"配置"按钮设置API Key</li>
-                <li>点击"随机生成"按钮自动生成英文文本</li>
+                <li>点击"配置 API"按钮设置 DeepSeek API Key</li>
+                <li>点击"生成文本"按钮自动生成英文文本</li>
                 <li>选择发音类型（美音或英音）</li>
                 <li>可调节语速滑块来控制朗读速度</li>
                 <li>点击"开始朗读"按钮开始播放</li>
@@ -93,31 +93,25 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="api-provider">API 提供商:</label>
-                    <select id="api-provider">
-                        <option value="deepseek">DeepSeek (推荐)</option>
-                        <option value="zhipu">智谱AI (GLM)</option>
-                        <option value="baidu">百度文心一言</option>
-                        <option value="qwen">阿里通义千问</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label for="api-key">API Key:</label>
                     <input 
                         type="password" 
                         id="api-key" 
-                        placeholder="请输入您的API Key"
+                        placeholder="请输入您的 DeepSeek API Key"
                     >
                     <button type="button" class="toggle-password" id="toggle-password">👁️</button>
                 </div>
                 <div class="form-group">
                     <label for="generate-theme">生成主题:</label>
                     <select id="generate-theme">
-                        <option value="story">故事</option>
-                        <option value="news">新闻</option>
-                        <option value="conversation">对话</option>
-                        <option value="learning">学习材料</option>
-                        <option value="essay">短文</option>
+                        <option value="故事">故事</option>
+                        <option value="新闻">新闻</option>
+                        <option value="对话">对话</option>
+                        <option value="科技">科技</option>
+                        <option value="文化">文化</option>
+                        <option value="商务">商务</option>
+                        <option value="学习">学习材料</option>
+                        <option value="日常">日常生活</option>
                         <option value="random">随机</option>
                     </select>
                 </div>
