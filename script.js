@@ -230,54 +230,90 @@ async function generateText() {
     generateBtn.disabled = true;
     updateStatus('正在生成文本...', 'info');
 
-    try {
-        const response = await fetch('/api/generate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                difficulty,
-                theme,
-                ieltsScenario,
-                apiKey,
-                provider
-            })
-        });
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries) {
+        try {
+            // 创建 AbortController 用于超时控制
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 50000); // 50秒前端超时
+            
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    difficulty,
+                    theme,
+                    ieltsScenario,
+                    apiKey,
+                    provider
+                }),
+                signal: controller.signal
+            });
 
-        if (!response.ok) {
-            let errorText = '';
-            try {
-                const errorData = await response.json();
-                errorText = errorData.error || errorData.message || '生成失败';
-            } catch (e) {
-                errorText = await response.text();
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                let errorText = '';
+                try {
+                    const errorData = await response.json();
+                    errorText = errorData.error || errorData.message || '生成失败';
+                } catch (e) {
+                    errorText = await response.text();
+                }
+                console.error('API Error:', errorText);
+                throw new Error(errorText);
             }
-            console.error('API Error:', errorText);
-            throw new Error(errorText);
+
+            const data = await response.json();
+            let generatedText = data.text || '';
+
+            if (!generatedText) {
+                throw new Error('API 返回的数据为空');
+            }
+
+            generatedText = generatedText.trim();
+            if (generatedText.startsWith('"') && generatedText.endsWith('"')) {
+                generatedText = generatedText.slice(1, -1);
+            }
+
+            textInput.value = generatedText;
+            updateStatus('文本生成成功!', 'success');
+            break; // 成功,退出重试循环
+
+        } catch (error) {
+            retryCount++;
+            console.error('生成错误 (尝试', retryCount, '/', maxRetries + 1, '):', error.message);
+
+            // 如果是超时或网络错误,且还有重试次数
+            if ((error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('Network Error') || error.message.includes('Failed to fetch')) && retryCount <= maxRetries) {
+                updateStatus(`连接超时,正在重试 (${retryCount}/${maxRetries})...`, 'warning');
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒后重试
+                continue;
+            }
+
+            // 重试次数用完或其他错误
+            let errorMsg = error.message;
+            if (error.name === 'AbortError') {
+                errorMsg = '请求超时,请检查网络连接或稍后重试';
+            } else if (errorMsg.includes('Network Error') || errorMsg.includes('Failed to fetch')) {
+                errorMsg = '网络连接失败,请检查网络或API服务器状态';
+            } else if (errorMsg.includes('API Key')) {
+                errorMsg = 'API Key无效,请检查配置';
+            } else if (errorMsg.includes('timeout')) {
+                errorMsg = '生成时间过长,请稍后重试';
+            }
+
+            console.error('最终错误:', error);
+            updateStatus('生成失败: ' + errorMsg, 'error');
+            break;
         }
-
-        const data = await response.json();
-        let generatedText = data.text || '';
-
-        if (!generatedText) {
-            throw new Error('API 返回的数据为空');
-        }
-
-        generatedText = generatedText.trim();
-        if (generatedText.startsWith('"') && generatedText.endsWith('"')) {
-            generatedText = generatedText.slice(1, -1);
-        }
-
-        textInput.value = generatedText;
-        updateStatus('文本生成成功!', 'success');
-
-    } catch (error) {
-        console.error('生成错误:', error);
-        updateStatus('生成失败: ' + error.message, 'error');
-    } finally {
-        generateBtn.disabled = false;
     }
+
+    generateBtn.disabled = false;
 }
 
 // ========== 雅思题目生成相关函数 ==========
@@ -346,94 +382,134 @@ async function generateQuestions() {
     updateStatus(`正在生成${scenarioInfo}${difficultyLabels[difficulty]}雅思${questionTypeLabels[questionType]}...`, 'info');
     generateQuestionsBtn.disabled = true;
 
-    try {
-        const currentConfig = localStorage.getItem('currentConfig');
+    let retryCount = 0;
+    const maxRetries = 2;
 
-        if (!currentConfig) {
-            updateStatus('请先配置 API Key', 'error');
-            openConfigModal();
-            return;
-        }
+    while (retryCount <= maxRetries) {
+        try {
+            const currentConfig = localStorage.getItem('currentConfig');
 
-        const config = JSON.parse(currentConfig);
-        const provider = config.provider;
-        const apiKey = config.apiKey;
-
-        const response = await fetch('/api/generate-questions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text,
-                difficulty,
-                questionType,
-                ieltsScenario,
-                apiKey,
-                provider,
-                questionCount
-            })
-        });
-
-        if (!response.ok) {
-            let errorText = '';
-            try {
-                const errorData = await response.json();
-                errorText = errorData.error || errorData.message || '生成失败';
-            } catch (e) {
-                errorText = await response.text();
-            }
-            console.error('API Error:', errorText);
-            throw new Error(errorText);
-        }
-
-        const data = await response.json();
-        let questions = data.questions || [];
-
-        if (!Array.isArray(questions) || questions.length === 0) {
-            throw new Error('生成的题目格式不正确或为空');
-        }
-
-        questions = questions.filter(q => {
-            if (!q.question || !q.type) return false;
-
-            if (q.type === 'multiple-choice') {
-                return Array.isArray(q.options) &&
-                       q.options.length === 4 &&
-                       typeof q.correctAnswer === 'number' &&
-                       q.correctAnswer >= 0 &&
-                       q.correctAnswer <= 3;
-            } else if (q.type === 'fill-blanks') {
-                return q.correctAnswer &&
-                       typeof q.correctAnswer === 'string' &&
-                       q.correctAnswer.trim().length > 0;
+            if (!currentConfig) {
+                updateStatus('请先配置 API Key', 'error');
+                openConfigModal();
+                generateQuestionsBtn.disabled = false;
+                return;
             }
 
-            return false;
-        });
+            const config = JSON.parse(currentConfig);
+            const provider = config.provider;
+            const apiKey = config.apiKey;
 
-        if (questions.length === 0) {
-            throw new Error('未能生成有效的题目');
+            // 创建 AbortController 用于超时控制
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 70000); // 70秒前端超时(题目生成更慢)
+
+            const response = await fetch('/api/generate-questions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text,
+                    difficulty,
+                    questionType,
+                    ieltsScenario,
+                    apiKey,
+                    provider,
+                    questionCount
+                }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                let errorText = '';
+                try {
+                    const errorData = await response.json();
+                    errorText = errorData.error || errorData.message || '生成失败';
+                } catch (e) {
+                    errorText = await response.text();
+                }
+                console.error('API Error:', errorText);
+                throw new Error(errorText);
+            }
+
+            const data = await response.json();
+            let questions = data.questions || [];
+
+            if (!Array.isArray(questions) || questions.length === 0) {
+                throw new Error('生成的题目格式不正确或为空');
+            }
+
+            questions = questions.filter(q => {
+                if (!q.question || !q.type) return false;
+
+                if (q.type === 'multiple-choice') {
+                    return Array.isArray(q.options) &&
+                           q.options.length === 4 &&
+                           typeof q.correctAnswer === 'number' &&
+                           q.correctAnswer >= 0 &&
+                           q.correctAnswer <= 3;
+                } else if (q.type === 'fill-blanks') {
+                    return q.correctAnswer &&
+                           typeof q.correctAnswer === 'string' &&
+                           q.correctAnswer.trim().length > 0;
+                }
+
+                return false;
+            });
+
+            if (questions.length === 0) {
+                throw new Error('未能生成有效的题目');
+            }
+
+            const finalQuestions = questions.slice(0, questionCount);
+
+            currentQuestions = [];
+            currentQuestions = finalQuestions;
+            displayQuestions(currentQuestions);
+            questionsSection.style.display = 'block';
+            updateStatus(`雅思题目生成成功！共 ${finalQuestions.length} 道题`, 'success');
+
+            setTimeout(() => {
+                questionsSection.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+
+            break; // 成功,退出重试循环
+
+        } catch (error) {
+            retryCount++;
+            console.error('生成题目错误 (尝试', retryCount, '/', maxRetries + 1, '):', error.message);
+
+            // 如果是超时或网络错误,且还有重试次数
+            if ((error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('Network Error') || error.message.includes('Failed to fetch')) && retryCount <= maxRetries) {
+                updateStatus(`连接超时,正在重试 (${retryCount}/${maxRetries})...`, 'warning');
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 等待2秒后重试
+                continue;
+            }
+
+            // 重试次数用完或其他错误
+            let errorMsg = error.message;
+            if (error.name === 'AbortError') {
+                errorMsg = '请求超时,题目生成较慢,请检查网络或稍后重试';
+            } else if (errorMsg.includes('Network Error') || errorMsg.includes('Failed to fetch')) {
+                errorMsg = '网络连接失败,请检查网络或API服务器状态';
+            } else if (errorMsg.includes('API Key')) {
+                errorMsg = 'API Key无效,请检查配置';
+            } else if (errorMsg.includes('timeout')) {
+                errorMsg = '生成时间过长,请稍后重试';
+            } else if (errorMsg.includes('题目格式') || errorMsg.includes('无效')) {
+                errorMsg = 'AI生成的题目格式有问题,请重试';
+            }
+
+            console.error('最终错误:', error);
+            updateStatus('生成题目失败: ' + errorMsg, 'error');
+            break;
         }
-
-        const finalQuestions = questions.slice(0, questionCount);
-
-        currentQuestions = [];
-        currentQuestions = finalQuestions;
-        displayQuestions(currentQuestions);
-        questionsSection.style.display = 'block';
-        updateStatus(`雅思题目生成成功！共 ${finalQuestions.length} 道题`, 'success');
-
-        setTimeout(() => {
-            questionsSection.scrollIntoView({ behavior: 'smooth' });
-        }, 300);
-        
-    } catch (error) {
-        console.error('生成题目错误:', error);
-        updateStatus('生成题目失败: ' + error.message, 'error');
-    } finally {
-        generateQuestionsBtn.disabled = false;
     }
+
+    generateQuestionsBtn.disabled = false;
 }
 
 function displayQuestions(questions) {
