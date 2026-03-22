@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const { apiKey, provider, theme } = req.body;
+        const { difficulty, theme, ieltsScenario, apiKey, provider } = req.body;
 
         const finalApiKey = apiKey || process.env.DEFAULT_API_KEY;
         const finalProvider = provider || process.env.DEFAULT_PROVIDER || 'deepseek';
@@ -25,23 +25,87 @@ module.exports = async function handler(req, res) {
 
         console.log('Using API Key:', finalApiKey ? finalApiKey.substring(0, 10) + '...' : 'none');
         console.log('Theme:', finalTheme);
+        console.log('Difficulty:', difficulty);
+        console.log('IELTS Scenario:', ieltsScenario);
 
         if (!finalApiKey) {
             return res.status(400).json({ error: '请先配置API Key' });
         }
 
         const difficultyInstructions = {
-            beginner: 'Use elementary school vocabulary. Short sentences. Simple grammar.',
-            intermediate: 'Use middle school vocabulary. Moderate sentences. Standard grammar.',
-            advanced: 'Use college-level vocabulary. Complex sentences. Sophisticated grammar.',
-            native: 'Use native-level vocabulary including idioms. Complex sentences. Nuanced grammar.'
+            beginner: 'simple vocabulary and basic grammar',
+            intermediate: 'moderate vocabulary and varied sentence structures',
+            advanced: 'complex vocabulary and sophisticated language',
+            native: 'native-level vocabulary and nuanced language'
         };
+
+        const difficultyLevels = {
+            beginner: 'elementary school level',
+            intermediate: 'middle school level',
+            advanced: 'college level',
+            native: 'native English speaker level'
+        };
+
+        const difficultyDesc = difficultyLevels[difficulty] || difficulty;
+        const isIELTS = ieltsScenario && ieltsScenario !== 'general';
+
+        const scenarioDescriptions = {
+            'introduction': 'introduction and monologue',
+            'group-discussion': 'group discussion',
+            'tutorial': 'tutorial and seminar',
+            'lecture': 'academic lecture'
+        };
+
+        const themeDescriptions = {
+            story: 'stories and narratives',
+            news: 'news articles',
+            conversation: 'everyday conversations',
+            learning: 'educational content',
+            essay: 'short essays',
+            science: 'scientific topics',
+            technology: 'technology and innovation',
+            culture: 'cultural topics',
+            business: 'business and professional contexts',
+            daily: 'daily life situations'
+        };
+
+        let lengthRequirement = '200-300';
+        
+        if (isIELTS) {
+            if (difficulty === 'native') {
+                lengthRequirement = '500-600';
+            } else if (difficulty === 'advanced') {
+                lengthRequirement = '400-500';
+            } else if (difficulty === 'intermediate') {
+                lengthRequirement = '300-400';
+            } else {
+                lengthRequirement = '200-300';
+            }
+        } else {
+            if (difficulty === 'native') {
+                lengthRequirement = '300-400';
+            } else if (difficulty === 'advanced') {
+                lengthRequirement = '250-350';
+            } else if (difficulty === 'intermediate') {
+                lengthRequirement = '200-250';
+            } else {
+                lengthRequirement = '150-200';
+            }
+        }
 
         let userPrompt = '';
         let systemPrompt = '';
+        let finalThemeDesc = themeDescriptions[finalTheme] || finalTheme;
 
-        systemPrompt = 'You are an English listening practice material generator. Generate ONE English text about ' + finalTheme + '. Word count: EXACTLY 200-300 words. Do NOT repeat same information. Do NOT generate multiple similar texts. Do NOT include any explanations, meta-commentary, or "Here is text". Output ONLY the text itself, nothing else. The text should be a continuous, coherent single text.';
-        userPrompt = 'Generate an English text about ' + finalTheme + '. CRITICAL: Word count MUST be EXACTLY 200-300 words. STRICT REQUIREMENTS: (1) Generate ONLY ONE text, (2) Do NOT repeat content, (3) Make it interesting and suitable for listening practice, (4) Do NOT include any intro/outro text, (5) Output ONLY the text, (6) Use ' + difficultyInstructions['intermediate'] + '.';
+        systemPrompt = `You are an English listening practice material generator. Generate ONE English text about ${finalThemeDesc}. Use ${difficultyDesc} vocabulary and grammar. Do NOT repeat same information. Do NOT generate multiple similar texts. Do NOT include any explanations, meta-commentary, or "Here is text". Output ONLY the text itself, nothing else.`;
+
+        if (isIELTS) {
+            const finalScenarioDesc = scenarioDescriptions[ieltsScenario] || ieltsScenario;
+            systemPrompt += ` This is for IELTS listening test, specifically the ${finalScenarioDesc} scenario.`;
+            userPrompt = `Generate an IELTS-style English text about ${finalThemeDesc}. CRITICAL: Word count MUST be EXACTLY ${lengthRequirement} words. This is ${finalScenarioDesc}. STRICT REQUIREMENTS: (1) Generate ONLY ONE text, (2) Do NOT repeat content, (3) Make it suitable for IELTS listening practice, (4) Do NOT include any intro/outro text, (5) Output ONLY the text, (6) Use ${difficultyInstructions[difficulty]}.`;
+        } else {
+            userPrompt = `Generate an English text about ${finalThemeDesc}. CRITICAL: Word count MUST be EXACTLY ${lengthRequirement} words. STRICT REQUIREMENTS: (1) Generate ONLY ONE text, (2) Do NOT repeat content, (3) Make it interesting and suitable for listening practice, (4) Do NOT include any intro/outro text, (5) Output ONLY the text, (6) Use ${difficultyInstructions[difficulty]}.`;
+        }
 
         let requestData = {};
         let url = '';
@@ -67,7 +131,7 @@ module.exports = async function handler(req, res) {
                         }
                     ],
                     temperature: 0.7,
-                    max_tokens: 1000
+                    max_tokens: 2000
                 };
                 break;
 
@@ -90,7 +154,7 @@ module.exports = async function handler(req, res) {
                         }
                     ],
                     temperature: 0.7,
-                    max_tokens: 1000
+                    max_tokens: 2000
                 };
                 break;
 
@@ -111,7 +175,7 @@ module.exports = async function handler(req, res) {
                         }
                     ],
                     temperature: 0.7,
-                    max_output_tokens: 1000
+                    max_output_tokens: 2000
                 };
                 url += '?access_token=' + finalApiKey;
                 break;
@@ -135,7 +199,7 @@ module.exports = async function handler(req, res) {
                         }
                     ],
                     temperature: 0.7,
-                    max_tokens: 1000
+                    max_tokens: 2000
                 };
                 break;
 
@@ -165,12 +229,12 @@ module.exports = async function handler(req, res) {
         res.json({ success: true, text: generatedText });
 
     } catch (error) {
-        console.error('API调用错误:', error.message);
+        console.error('生成错误:', error.message);
 
         if (error.response) {
             console.error('API响应错误:', error.response.data);
             return res.status(error.response.status || 500).json({
-                error: error.response.data.error ? error.response.data.error.message : 'API调用失败',
+                error: error.response.data.error ? error.response.data.error.message : '生成文本失败',
                 details: error.response.data
             });
         }

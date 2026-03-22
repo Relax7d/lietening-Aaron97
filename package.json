@@ -1,8 +1,15 @@
 {
   "name": "listening-app",
-  "version": "1.0.0",
-  "description": "English listening practice app",
+  "version": "2.0.0",
+  "description": "English listening practice app with full IELTS features",
+  "main": "index.html",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
