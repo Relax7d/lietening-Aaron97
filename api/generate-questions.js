@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
                 }
             ],
             temperature: 0.7,
-            max_tokens: 1800
+            max_tokens: 1500
         };
 
         let url = '';
@@ -74,7 +74,6 @@ module.exports = async function handler(req, res) {
                     'Content-Type': 'application/json'
                 };
                 requestData.model = 'deepseek-chat';
-                requestData.timeout = 90000;
                 break;
 
             case 'zhipu':
@@ -111,7 +110,30 @@ module.exports = async function handler(req, res) {
 
         console.log('Calling', finalProvider, 'API for questions...');
 
-        const response = await axios.post(url, requestData, { headers });
+        // 添加超时和重试机制
+        const maxRetries = 3;
+        let retryCount = 0;
+        let response;
+
+        while (retryCount < maxRetries) {
+            try {
+                response = await axios.post(url, requestData, {
+                    headers,
+                    timeout: 60000  // 60秒超时
+                });
+                break;  // 成功则跳出循环
+            } catch (error) {
+                retryCount++;
+                console.error(`API调用失败 (尝试 ${retryCount}/${maxRetries}):`, error.message);
+
+                if (retryCount >= maxRetries) {
+                    throw error;  // 重试次数用完,抛出错误
+                }
+
+                // 等待后重试
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            }
+        }
 
         let questionsText = '';
 

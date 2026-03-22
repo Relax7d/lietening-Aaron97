@@ -124,8 +124,7 @@ module.exports = async function handler(req, res) {
                         }
                     ],
                     temperature: 0.7,
-                    max_tokens: 2000,
-                    timeout: 60000
+                    max_tokens: 1500
                 };
                 break;
 
@@ -203,7 +202,30 @@ module.exports = async function handler(req, res) {
 
         console.log('Calling', finalProvider, 'API...');
 
-        const response = await axios.post(url, requestData, { headers });
+        // 添加超时和重试机制
+        const maxRetries = 3;
+        let retryCount = 0;
+        let response;
+
+        while (retryCount < maxRetries) {
+            try {
+                response = await axios.post(url, requestData, {
+                    headers,
+                    timeout: 45000  // 45秒超时
+                });
+                break;  // 成功则跳出循环
+            } catch (error) {
+                retryCount++;
+                console.error(`API调用失败 (尝试 ${retryCount}/${maxRetries}):`, error.message);
+
+                if (retryCount >= maxRetries) {
+                    throw error;  // 重试次数用完,抛出错误
+                }
+
+                // 等待后重试
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            }
+        }
 
         let generatedText = '';
 
