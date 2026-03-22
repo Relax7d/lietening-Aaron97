@@ -39,15 +39,13 @@ module.exports = async function handler(req, res) {
         const scenarioContext = ieltsScenario ? '\nThis text is from "' + ieltsScenario + '" scenario.' : '';
 
         if (questionType === 'multiple-choice') {
-            promptContent = 'Based on following English text, generate ' + questionCount + ' IELTS-style multiple-choice listening comprehension questions. Each question must have 4 options (A, B, C, D).\n\nText:\n' + text + '\n' + scenarioContext + '\n\nFormat your response as a JSON array:\n[\n  {\n    "type": "multiple-choice",\n    "question": "Your question text",\n    "options": ["Option A", "Option B", "Option C", "Option D"],\n    "correctAnswer": 0,\n    "explanation": "Brief explanation"\n  }\n]\n\nImportant:\n- correctAnswer should be 0 for A, 1 for B, 2 for C, 3 for D\n- Return ONLY JSON array, no other text';
+            promptContent = 'Generate ' + questionCount + ' multiple choice questions about this text:\n' + text + '\n\nReturn JSON: [{"type":"multiple-choice","question":"text","options":["A","B","C","D"],"correctAnswer":0,"explanation":"text"}]';
 
         } else if (questionType === 'fill-blanks') {
-            promptContent = 'Based on following English text, generate ' + questionCount + ' IELTS-style fill-in-the-blank listening comprehension questions.\n\nText:\n' + text + '\n' + scenarioContext + '\n\nFormat your response as a JSON array:\n[\n  {\n    "type": "fill-blanks",\n    "question": "Your question with blank (use _____ for blank)",\n    "correctAnswer": "The exact word or phrase",\n    "explanation": "Brief explanation"\n  }\n]\n\nImportant:\n- Use _____ to indicate blank in question\n- Return ONLY JSON array, no other text';
+            promptContent = 'Generate ' + questionCount + ' fill-in-the-blank questions about this text:\n' + text + '\n\nReturn JSON: [{"type":"fill-blanks","question":"text with _____","correctAnswer":"word","explanation":"text"}]';
 
         } else {
-            const mcCount = Math.ceil(questionCount * 0.6);
-            const fbCount = questionCount - mcCount;
-            promptContent = 'Based on following English text, generate ' + questionCount + ' IELTS-style listening comprehension questions.\n\nText:\n' + text + '\n' + scenarioContext + '\n\nGenerate approximately ' + mcCount + ' multiple-choice questions and ' + fbCount + ' fill-in-the-blank questions.\n\nFormat your response as a JSON array with mixed types.\n- Return ONLY JSON array, no other text';
+            promptContent = 'Generate ' + questionCount + ' mixed questions about this text:\n' + text + '\n\nReturn JSON: [{"type":"multiple-choice","question":"text","options":["A","B","C","D"],"correctAnswer":0,"explanation":"text"},{"type":"fill-blanks","question":"text with _____","correctAnswer":"word","explanation":"text"}]';
         }
 
         let requestData = {

@@ -97,15 +97,8 @@ module.exports = async function handler(req, res) {
         let systemPrompt = '';
         let finalThemeDesc = themeDescriptions[finalTheme] || finalTheme;
 
-        systemPrompt = `You are an English listening practice material generator. Generate ONE English text about ${finalThemeDesc}. Use ${difficultyDesc} vocabulary and grammar. Do NOT repeat same information. Do NOT generate multiple similar texts. Do NOT include any explanations, meta-commentary, or "Here is text". Output ONLY the text itself, nothing else.`;
-
-        if (isIELTS) {
-            const finalScenarioDesc = scenarioDescriptions[ieltsScenario] || ieltsScenario;
-            systemPrompt += ` This is for IELTS listening test, specifically the ${finalScenarioDesc} scenario.`;
-            userPrompt = `Generate an IELTS-style English text about ${finalThemeDesc}. CRITICAL: Word count MUST be EXACTLY ${lengthRequirement} words. This is ${finalScenarioDesc}. STRICT REQUIREMENTS: (1) Generate ONLY ONE text, (2) Do NOT repeat content, (3) Make it suitable for IELTS listening practice, (4) Do NOT include any intro/outro text, (5) Output ONLY the text, (6) Use ${difficultyInstructions[difficulty]}.`;
-        } else {
-            userPrompt = `Generate an English text about ${finalThemeDesc}. CRITICAL: Word count MUST be EXACTLY ${lengthRequirement} words. STRICT REQUIREMENTS: (1) Generate ONLY ONE text, (2) Do NOT repeat content, (3) Make it interesting and suitable for listening practice, (4) Do NOT include any intro/outro text, (5) Output ONLY the text, (6) Use ${difficultyInstructions[difficulty]}.`;
-        }
+        systemPrompt = `You are an English listening practice material generator.`;
+        userPrompt = `Generate one English text about ${finalThemeDesc}. Use ${difficultyDesc} vocabulary. Word count: ${lengthRequirement} words. Output ONLY the text, nothing else.`;
 
         let requestData = {};
         let url = '';
