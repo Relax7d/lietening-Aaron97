@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语听力朗读</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎧 英语听力朗读</h1>
+        
+        <div class="input-section">
+            <label for="text-input">请输入英文文本:</label>
+            <textarea 
+                id="text-input" 
+                placeholder="在此输入要朗读的英文内容..."
+                rows="8"
+            ></textarea>
+        </div>
+        
+        <div class="voice-selector">
+            <label>选择发音:</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="voice" value="en-US" checked>
+                    <span class="radio-label">🇺🇸 美音 (US)</span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="voice" value="en-GB">
+                    <span class="radio-label">🇬🇧 英音 (UK)</span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="speed-control">
+            <label for="speed">语速:</label>
+            <input 
+                type="range" 
+                id="speed" 
+                min="0.5" 
+                max="2" 
+                step="0.1" 
+                value="1"
+            >
+            <span id="speed-value">1.0x</span>
+        </div>
+        
+        <div class="button-group">
+            <button id="config-btn" class="btn btn-config">
+                <span class="btn-icon">⚙️</span> 配置
+            </button>
+            <button id="generate-btn" class="btn btn-generate">
+                <span class="btn-icon">🎲</span> 随机生成
+            </button>
+            <button id="read-btn" class="btn btn-primary">
+                <span class="btn-icon">▶️</span> 开始朗读
+            </button>
+            <button id="pause-btn" class="btn btn-secondary">
+                <span class="btn-icon">⏸️</span> 暂停
+            </button>
+            <button id="stop-btn" class="btn btn-secondary">
+                <span class="btn-icon">⏹️</span> 停止
+            </button>
+            <button id="clear-btn" class="btn btn-warning">
+                <span class="btn-icon">🗑️</span> 清空
+            </button>
+        </div>
+        
+        <div class="status-bar">
+            <span id="status-text">准备就绪</span>
+        </div>
+        
+        <div class="voice-info">
+            <h3>💡 使用说明</h3>
+            <ul>
+                <li>点击"配置"按钮设置API Key</li>
+                <li>点击"随机生成"按钮自动生成英文文本</li>
+                <li>选择发音类型（美音或英音）</li>
+                <li>可调节语速滑块来控制朗读速度</li>
+                <li>点击"开始朗读"按钮开始播放</li>
+                <li>支持暂停、停止和清空功能</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 配置弹窗 -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ 配置 API</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="api-provider">API 提供商:</label>
+                    <select id="api-provider">
+                        <option value="deepseek">DeepSeek (推荐)</option>
+                        <option value="zhipu">智谱AI (GLM)</option>
+                        <option value="baidu">百度文心一言</option>
+                        <option value="qwen">阿里通义千问</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="api-key">API Key:</label>
+                    <input 
+                        type="password" 
+                        id="api-key" 
+                        placeholder="请输入您的API Key"
+                    >
+                    <button type="button" class="toggle-password" id="toggle-password">👁️</button>
+                </div>
+                <div class="form-group">
+                    <label for="generate-theme">生成主题:</label>
+                    <select id="generate-theme">
+                        <option value="story">故事</option>
+                        <option value="news">新闻</option>
+                        <option value="conversation">对话</option>
+                        <option value="learning">学习材料</option>
+                        <option value="essay">短文</option>
+                        <option value="random">随机</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="saved-keys">已保存的 Keys:</label>
+                    <select id="saved-keys">
+                        <option value="">-- 选择已保存的 Key --</option>
+                    </select>
+                    <button type="button" class="delete-key-btn" id="delete-key-btn">删除</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-btn">取消</button>
+                <button class="btn btn-primary" id="save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

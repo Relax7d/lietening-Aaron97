@@ -1,0 +1,183 @@
+const axios = require('axios');
+
+module.exports = async function handler(req, res) {
+    // CORS 处理
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        const { apiKey, provider, theme } = req.body;
+
+        const finalApiKey = apiKey || process.env.DEFAULT_API_KEY;
+        const finalProvider = provider || process.env.DEFAULT_PROVIDER || 'deepseek';
+        const finalTheme = theme || 'story';
+
+        console.log('Using API Key:', finalApiKey ? finalApiKey.substring(0, 10) + '...' : 'none');
+        console.log('Theme:', finalTheme);
+
+        if (!finalApiKey) {
+            return res.status(400).json({ error: '请先配置API Key' });
+        }
+
+        const difficultyInstructions = {
+            beginner: 'Use elementary school vocabulary. Short sentences. Simple grammar.',
+            intermediate: 'Use middle school vocabulary. Moderate sentences. Standard grammar.',
+            advanced: 'Use college-level vocabulary. Complex sentences. Sophisticated grammar.',
+            native: 'Use native-level vocabulary including idioms. Complex sentences. Nuanced grammar.'
+        };
+
+        let userPrompt = '';
+        let systemPrompt = '';
+
+        systemPrompt = 'You are an English listening practice material generator. Generate ONE English text about ' + finalTheme + '. Word count: EXACTLY 200-300 words. Do NOT repeat same information. Do NOT generate multiple similar texts. Do NOT include any explanations, meta-commentary, or "Here is text". Output ONLY the text itself, nothing else. The text should be a continuous, coherent single text.';
+        userPrompt = 'Generate an English text about ' + finalTheme + '. CRITICAL: Word count MUST be EXACTLY 200-300 words. STRICT REQUIREMENTS: (1) Generate ONLY ONE text, (2) Do NOT repeat content, (3) Make it interesting and suitable for listening practice, (4) Do NOT include any intro/outro text, (5) Output ONLY the text, (6) Use ' + difficultyInstructions['intermediate'] + '.';
+
+        let requestData = {};
+        let url = '';
+        let headers = {};
+
+        switch (finalProvider) {
+            case 'deepseek':
+                url = 'https://api.deepseek.com/v1/chat/completions';
+                headers = {
+                    'Authorization': 'Bearer ' + finalApiKey,
+                    'Content-Type': 'application/json'
+                };
+                requestData = {
+                    model: 'deepseek-chat',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: systemPrompt
+                        },
+                        {
+                            role: 'user',
+                            content: userPrompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                };
+                break;
+
+            case 'zhipu':
+                url = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+                headers = {
+                    'Authorization': 'Bearer ' + finalApiKey,
+                    'Content-Type': 'application/json'
+                };
+                requestData = {
+                    model: 'glm-4',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: systemPrompt
+                        },
+                        {
+                            role: 'user',
+                            content: userPrompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                };
+                break;
+
+            case 'baidu':
+                url = 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro';
+                headers = {
+                    'Content-Type': 'application/json'
+                };
+                requestData = {
+                    messages: [
+                        {
+                            role: 'system',
+                            content: systemPrompt
+                        },
+                        {
+                            role: 'user',
+                            content: userPrompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_output_tokens: 1000
+                };
+                url += '?access_token=' + finalApiKey;
+                break;
+
+            case 'qwen':
+                url = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+                headers = {
+                    'Authorization': 'Bearer ' + finalApiKey,
+                    'Content-Type': 'application/json'
+                };
+                requestData = {
+                    model: 'qwen-turbo',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: systemPrompt
+                        },
+                        {
+                            role: 'user',
+                            content: userPrompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                };
+                break;
+
+            default:
+                return res.status(400).json({ error: '不支持的API提供商' });
+        }
+
+        console.log('Calling', finalProvider, 'API...');
+
+        const response = await axios.post(url, requestData, { headers });
+
+        let generatedText = '';
+
+        if (finalProvider === 'deepseek' || finalProvider === 'zhipu' || finalProvider === 'qwen') {
+            generatedText = response.data.choices[0].message.content;
+        } else if (finalProvider === 'baidu') {
+            generatedText = response.data.result;
+        }
+
+        generatedText = generatedText.trim();
+        if (generatedText.startsWith('"') && generatedText.endsWith('"')) {
+            generatedText = generatedText.slice(1, -1);
+        }
+
+        console.log('Generated text:', generatedText.substring(0, 50) + '...');
+
+        res.json({ success: true, text: generatedText });
+
+    } catch (error) {
+        console.error('API调用错误:', error.message);
+
+        if (error.response) {
+            console.error('API响应错误:', error.response.data);
+            return res.status(error.response.status || 500).json({
+                error: error.response.data.error ? error.response.data.error.message : 'API调用失败',
+                details: error.response.data
+            });
+        }
+
+        res.status(500).json({
+            error: '生成文本失败',
+            message: error.message
+        });
+    }
+};
