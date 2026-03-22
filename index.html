@@ -5,131 +5,290 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>英语听力朗读</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>🎧 英语听力朗读</h1>
-        
-        <div class="input-section">
-            <label for="text-input">请输入英文文本:</label>
-            <textarea 
-                id="text-input" 
-                placeholder="在此输入要朗读的英文内容，或者点击下方按钮生成..."
-                rows="8"
-            ></textarea>
-        </div>
-        
-        <div class="voice-selector">
-            <label>选择发音:</label>
-            <div class="radio-group">
-                <label class="radio-option">
-                    <input type="radio" name="voice" value="en-US" checked>
-                    <span class="radio-label">🇺🇸 美音 (US)</span>
-                </label>
-                <label class="radio-option">
-                    <input type="radio" name="voice" value="en-GB">
-                    <span class="radio-label">🇬🇧 英音 (UK)</span>
-                </label>
+    <!-- 顶部导航栏 -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="brand-icon">🎧</div>
+                <span class="brand-name">ListenAI</span>
+            </div>
+            <div class="nav-actions">
+                <button id="config-btn" class="btn-icon-only" title="配置">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"></path>
+                    </svg>
+                </button>
             </div>
         </div>
-        
-        <div class="speed-control">
-            <label for="speed">语速:</label>
-            <input 
-                type="range" 
-                id="speed" 
-                min="0.5" 
-                max="2" 
-                step="0.1" 
-                value="1"
-            >
-            <span id="speed-value">1.0x</span>
+    </header>
+
+    <main class="main-content">
+        <div class="page-layout">
+            <!-- 左侧主要区域 -->
+            <div class="primary-section">
+                <!-- 文本输入区域 -->
+                <section class="text-input-section">
+                    <div class="section-header">
+                        <h2 class="section-title">英文文本</h2>
+                        <span class="char-count" id="char-count">0 字符</span>
+                    </div>
+                    <textarea
+                        id="text-input"
+                        class="text-area"
+                        placeholder="在此输入要朗读的英文内容，或者使用右侧控制面板自动生成..."
+                        rows="12"
+                    ></textarea>
+                </section>
+
+                <!-- 播放控制栏 -->
+                <section class="playback-controls">
+                    <div class="control-group">
+                        <button id="read-btn" class="btn btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            播放
+                        </button>
+                        <button id="pause-btn" class="btn btn-secondary" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="4" width="4" height="16"></rect>
+                                <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            暂停
+                        </button>
+                        <button id="stop-btn" class="btn btn-secondary" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="6" width="12" height="12"></rect>
+                            </svg>
+                            停止
+                        </button>
+                    </div>
+
+                    <div class="speed-control">
+                        <label for="speed">语速</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
+                            <span class="speed-value" id="speed-value">1.0x</span>
+                        </div>
+                    </div>
+
+                    <div class="voice-control">
+                        <div class="voice-type-select">
+                            <label class="voice-label">口音</label>
+                            <div class="pill-group">
+                                <label class="pill-option">
+                                    <input type="radio" name="voice" value="en-US" checked>
+                                    <span>美音</span>
+                                </label>
+                                <label class="pill-option">
+                                    <input type="radio" name="voice" value="en-GB">
+                                    <span>英音</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="voice-gender-select">
+                            <label class="voice-label">声线</label>
+                            <div class="pill-group">
+                                <label class="pill-option">
+                                    <input type="radio" name="voice-gender" value="male" checked>
+                                    <span>男声</span>
+                                </label>
+                                <label class="pill-option">
+                                    <input type="radio" name="voice-gender" value="female">
+                                    <span>女声</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 状态提示 -->
+                <div class="status-bar" id="status-bar">
+                    <span id="status-text">准备就绪</span>
+                </div>
+
+                <!-- 雅思题目区域 -->
+                <div id="questions-section" class="questions-section" style="display: none;">
+                    <div class="section-header">
+                        <h2 class="section-title">听力理解题</h2>
+                        <button id="clear-questions-btn" class="btn-text">清除</button>
+                    </div>
+                    <div id="questions-container"></div>
+                </div>
+            </div>
+
+            <!-- 右侧控制面板 -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">生成设置</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">难度级别</label>
+                        <select id="difficulty" class="form-select">
+                            <option value="beginner">初级</option>
+                            <option value="intermediate">中级</option>
+                            <option value="advanced">高级</option>
+                            <option value="native">母语水平</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">内容主题</label>
+                        <select id="theme-select" class="form-select">
+                            <option value="story">故事</option>
+                            <option value="news">新闻</option>
+                            <option value="conversation">对话</option>
+                            <option value="learning">学习材料</option>
+                            <option value="essay">短文</option>
+                            <option value="science">科学</option>
+                            <option value="technology">科技</option>
+                            <option value="culture">文化</option>
+                            <option value="business">商务</option>
+                            <option value="daily">日常生活</option>
+                            <option value="random">随机</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">雅思场景</label>
+                        <select id="ielts-scenario" class="form-select">
+                            <option value="introduction">介绍说明 (Section 2)</option>
+                            <option value="group-discussion">小组讨论 (Section 3)</option>
+                            <option value="tutorial">师生讨论 (Section 3)</option>
+                            <option value="lecture">学术讲座 (Section 4)</option>
+                            <option value="random">随机</option>
+                        </select>
+                    </div>
+
+                    <button id="generate-btn" class="btn btn-full btn-primary-gradient">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9"></path>
+                        </svg>
+                        生成文本
+                    </button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">题目设置</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">题目类型</label>
+                        <select id="question-type" class="form-select">
+                            <option value="all">全部题型</option>
+                            <option value="multiple-choice">选择题</option>
+                            <option value="fill-blanks">填空题</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">题目数量</label>
+                        <select id="question-count" class="form-select">
+                            <option value="5">5 道题</option>
+                            <option value="10" disabled>10 道题 (需要高级)</option>
+                            <option value="15" disabled>15 道题 (需要母语)</option>
+                        </select>
+                    </div>
+
+                    <button id="generate-questions-btn" class="btn btn-full btn-accent">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"></path>
+                        </svg>
+                        生成雅思题
+                    </button>
+                </div>
+
+                <div class="sidebar-section sidebar-help">
+                    <h3 class="sidebar-title">使用提示</h3>
+                    <ul class="help-list">
+                        <li>
+                            <span class="help-icon">💡</span>
+                            <span>选择难度和主题生成不同级别的英文文本</span>
+                        </li>
+                        <li>
+                            <span class="help-icon">🎯</span>
+                            <span>雅思场景与题目类型联合控制出题方向</span>
+                        </li>
+                        <li>
+                            <span class="help-icon">🔊</span>
+                            <span>可切换美音/英音和男声/女声</span>
+                        </li>
+                        <li>
+                            <span class="help-icon">⚡</span>
+                            <span>调节语速滑块控制播放速度</span>
+                        </li>
+                    </ul>
+                </div>
+            </aside>
         </div>
-        
-        <div class="button-group">
-            <button id="config-btn" class="btn btn-config">
-                <span class="btn-icon">⚙️</span> 配置 API
-            </button>
-            <button id="generate-btn" class="btn btn-generate">
-                <span class="btn-icon">🎲</span> 生成文本
-            </button>
-            <button id="read-btn" class="btn btn-primary">
-                <span class="btn-icon">▶️</span> 开始朗读
-            </button>
-            <button id="pause-btn" class="btn btn-secondary">
-                <span class="btn-icon">⏸️</span> 暂停
-            </button>
-            <button id="stop-btn" class="btn btn-secondary">
-                <span class="btn-icon">⏹️</span> 停止
-            </button>
-            <button id="clear-btn" class="btn btn-warning">
-                <span class="btn-icon">🗑️</span> 清空
-            </button>
-        </div>
-        
-        <div class="status-bar">
-            <span id="status-text">准备就绪</span>
-        </div>
-        
-        <div class="voice-info">
-            <h3>💡 使用说明</h3>
-            <ul>
-                <li>点击"配置 API"按钮设置 DeepSeek API Key</li>
-                <li>点击"生成文本"按钮自动生成英文文本</li>
-                <li>选择发音类型（美音或英音）</li>
-                <li>可调节语速滑块来控制朗读速度</li>
-                <li>点击"开始朗读"按钮开始播放</li>
-                <li>支持暂停、停止和清空功能</li>
-            </ul>
-        </div>
-    </div>
-    
+    </main>
+
     <!-- 配置弹窗 -->
     <div id="config-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-backdrop"></div>
+        <div class="modal-container">
             <div class="modal-header">
-                <h2>⚙️ 配置 API</h2>
-                <button class="close-btn" id="close-modal">&times;</button>
+                <h2 class="modal-title">API 配置</h2>
+                <button class="btn-close" id="close-modal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="api-key">API Key:</label>
-                    <input 
-                        type="password" 
-                        id="api-key" 
-                        placeholder="请输入您的 DeepSeek API Key"
-                    >
-                    <button type="button" class="toggle-password" id="toggle-password">👁️</button>
-                </div>
-                <div class="form-group">
-                    <label for="generate-theme">生成主题:</label>
-                    <select id="generate-theme">
-                        <option value="故事">故事</option>
-                        <option value="新闻">新闻</option>
-                        <option value="对话">对话</option>
-                        <option value="科技">科技</option>
-                        <option value="文化">文化</option>
-                        <option value="商务">商务</option>
-                        <option value="学习">学习材料</option>
-                        <option value="日常">日常生活</option>
-                        <option value="random">随机</option>
+                    <label class="form-label">API 提供商</label>
+                    <select id="api-provider" class="form-select">
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="zhipu">智谱 AI (GLM)</option>
+                        <option value="baidu">百度文心一言</option>
+                        <option value="qwen">阿里通义千问</option>
                     </select>
                 </div>
+
                 <div class="form-group">
-                    <label for="saved-keys">已保存的 Keys:</label>
-                    <select id="saved-keys">
-                        <option value="">-- 选择已保存的 Key --</option>
-                    </select>
-                    <button type="button" class="delete-key-btn" id="delete-key-btn">删除</button>
+                    <label class="form-label">API Key</label>
+                    <div class="input-with-toggle">
+                        <input
+                            type="password"
+                            id="api-key"
+                            class="form-input"
+                            placeholder="请输入您的 API Key"
+                        >
+                        <button type="button" class="toggle-password" id="toggle-password">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">已保存的配置</label>
+                    <div class="input-with-action">
+                        <select id="saved-keys" class="form-select">
+                            <option value="">选择已保存的配置</option>
+                        </select>
+                        <button type="button" class="btn-icon-delete" id="delete-key-btn" title="删除">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="cancel-btn">取消</button>
-                <button class="btn btn-primary" id="save-btn">保存</button>
+                <button class="btn btn-ghost" id="cancel-btn">取消</button>
+                <button class="btn btn-primary" id="save-btn">保存配置</button>
             </div>
         </div>
     </div>
-    
+
     <script src="script.js"></script>
 </body>
 </html>
