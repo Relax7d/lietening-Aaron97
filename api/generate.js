@@ -131,7 +131,8 @@ module.exports = async function handler(req, res) {
                         }
                     ],
                     temperature: 0.7,
-                    max_tokens: 2000
+                    max_tokens: 2000,
+                    timeout: 60000
                 };
                 break;
 

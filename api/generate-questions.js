@@ -76,6 +76,7 @@ module.exports = async function handler(req, res) {
                     'Content-Type': 'application/json'
                 };
                 requestData.model = 'deepseek-chat';
+                requestData.timeout = 90000;
                 break;
 
             case 'zhipu':

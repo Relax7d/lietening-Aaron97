@@ -246,13 +246,23 @@ async function generateText() {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
+            let errorText = '';
+            try {
+                const errorData = await response.json();
+                errorText = errorData.error || errorData.message || '生成失败';
+            } catch (e) {
+                errorText = await response.text();
+            }
             console.error('API Error:', errorText);
-            throw new Error('生成失败，请检查网络连接和 API Key');
+            throw new Error(errorText);
         }
 
         const data = await response.json();
         let generatedText = data.text || '';
+
+        if (!generatedText) {
+            throw new Error('API 返回的数据为空');
+        }
 
         generatedText = generatedText.trim();
         if (generatedText.startsWith('"') && generatedText.endsWith('"')) {
@@ -261,7 +271,7 @@ async function generateText() {
 
         textInput.value = generatedText;
         updateStatus('文本生成成功!', 'success');
-        
+
     } catch (error) {
         console.error('生成错误:', error);
         updateStatus('生成失败: ' + error.message, 'error');
@@ -366,16 +376,22 @@ async function generateQuestions() {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
+            let errorText = '';
+            try {
+                const errorData = await response.json();
+                errorText = errorData.error || errorData.message || '生成失败';
+            } catch (e) {
+                errorText = await response.text();
+            }
             console.error('API Error:', errorText);
-            throw new Error('生成失败，请检查网络连接和 API Key');
+            throw new Error(errorText);
         }
 
         const data = await response.json();
         let questions = data.questions || [];
 
         if (!Array.isArray(questions) || questions.length === 0) {
-            throw new Error('生成的题目格式不正确');
+            throw new Error('生成的题目格式不正确或为空');
         }
 
         questions = questions.filter(q => {
